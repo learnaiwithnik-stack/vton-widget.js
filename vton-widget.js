@@ -2,7 +2,7 @@
     // ***********************************************
     //  ADMIN SETTINGS
     // ***********************************************
-    const CLIENT_ID = "abc_123"; // <--- FREE MODE
+    const CLIENT_ID = window.AIFL_CLIENT_ID || "demo_store"; // <--- FREE MODE
     const WORKER_URL = "https://tryon-api.learnaiwithnik.workers.dev"; 
     
     // FALLBACK: If we find NOTHING, show this Unsplash Model
