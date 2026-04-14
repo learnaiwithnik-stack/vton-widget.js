@@ -29,8 +29,8 @@
                 .v-left { width: 100%; min-height: auto; } 
                 .v-left img { width: 100%; height: auto; display: block; } 
                 .v-right { padding: 25px; } 
-                /* MOVED THE BUTTON 3.5x HIGHER TO CLEAR THE CART BAR! */
-                #vton-float { padding: 10px 18px !important; font-size: 12px !important; bottom: 85px !important; right: 15px !important; }
+              /* MOVED THE BUTTON 3x HIGHER TO CLEAR THE CART BAR! */
+#vton-float { padding: 10px 18px !important; font-size: 12px !important; bottom: 75px !important; right: 15px !important; }
             }
             @media (min-width: 769px) { .v-con { flex-direction: row; height: 550px; overflow: hidden; } .v-left { width: 50%; height: 100%; background:#f8f9fa; } .v-left img { width: 100%; height: 100%; object-fit: contain; } .v-right { width: 50%; height: 100%; overflow-y: auto; padding: 40px; } }
             .v-left { position:relative; display:flex; align-items:center; justify-content:center; }
