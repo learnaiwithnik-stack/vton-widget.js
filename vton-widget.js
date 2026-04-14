@@ -29,7 +29,8 @@
                 .v-left { width: 100%; min-height: auto; } 
                 .v-left img { width: 100%; height: auto; display: block; } 
                 .v-right { padding: 25px; } 
-                #vton-float { padding: 10px 18px !important; font-size: 12px !important; bottom: 15px !important; right: 15px !important; }
+                /* MOVED THE BUTTON 3.5x HIGHER TO CLEAR THE CART BAR! */
+                #vton-float { padding: 10px 18px !important; font-size: 12px !important; bottom: 85px !important; right: 15px !important; }
             }
             @media (min-width: 769px) { .v-con { flex-direction: row; height: 550px; overflow: hidden; } .v-left { width: 50%; height: 100%; background:#f8f9fa; } .v-left img { width: 100%; height: 100%; object-fit: contain; } .v-right { width: 50%; height: 100%; overflow-y: auto; padding: 40px; } }
             .v-left { position:relative; display:flex; align-items:center; justify-content:center; }
@@ -74,10 +75,11 @@
     };
 
     // ************************************************************
-    //  2. THE NEW DUAL-SCANNER (Desktop = Tallest, Mobile = Top First)
+    //  2. THE PERFECTED DUAL-SCANNER
     // ************************************************************
     const getGarmentImage = () => {
         let candidates = [];
+        const isMobile = window.innerWidth <= 768;
         
         document.querySelectorAll('img').forEach(img => {
             const rect = img.getBoundingClientRect();
@@ -85,16 +87,15 @@
             
             // Filter 1: Visible and decent size
             if (rect.width > 150 && rect.height > 150) {
-                const isPortrait = (rect.height > rect.width) || (img.naturalHeight > img.naturalWidth);
+                // Mobile: checks natural size too. Desktop: strictly visual size.
+                const isPortrait = isMobile ? ((rect.height > rect.width) || (img.naturalHeight > img.naturalWidth)) : (rect.height > rect.width);
                 
                 if (isPortrait) { 
                     if (!src.includes('logo') && !src.includes('icon') && !src.includes('avatar')) {
-                        // Store height AND top position (distance from top of page)
-                        const topPosition = rect.top + window.scrollY;
                         candidates.push({ 
                             src: img.src, 
-                            height: img.naturalHeight || rect.height, 
-                            topPosition: topPosition 
+                            height: rect.height, // Visual height for Desktop sorting
+                            topPosition: rect.top + window.scrollY // Position for Mobile sorting
                         });
                     }
                 }
@@ -102,13 +103,11 @@
         });
 
         if (candidates.length > 0) {
-            const isMobile = window.innerWidth <= 768;
-            
             if (isMobile) {
-                // MOBILE LOGIC: Sort by distance from top (lowest number = closest to top)
+                // MOBILE LOGIC: Sort by distance from top (First image)
                 candidates.sort((a, b) => a.topPosition - b.topPosition);
             } else {
-                // DESKTOP LOGIC: Sort by height (tallest image)
+                // DESKTOP LOGIC: Restore the exact "Tallest Image" logic that worked perfectly before!
                 candidates.sort((a, b) => b.height - a.height);
             }
             
