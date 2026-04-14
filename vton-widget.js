@@ -2,8 +2,11 @@
     // ***********************************************
     //  ADMIN SETTINGS
     // ***********************************************
-  const CLIENT_ID = window.AIFL_CLIENT_ID || "unregistered_user";
+    const CLIENT_ID = window.AIFL_CLIENT_ID || "unregistered_user";
     const WORKER_URL = "https://tryon-api.learnaiwithnik.workers.dev"; 
+    
+    // CUSTOM BRAND COLOR (Client can set window.AIFL_BTN_COLOR in their HTML)
+    const BRAND_COLOR = window.AIFL_BTN_COLOR || "#000";
     
     // FALLBACK: If we find NOTHING, show this Unsplash Model
     const FALLBACK_IMG = "https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?q=80&w=500&auto=format&fit=crop";
@@ -39,11 +42,12 @@
             .v-garment-preview { display:flex; align-items:center; gap:12px; background:#f5f5f7; padding:10px; border-radius:12px; margin-bottom:20px; border:1px solid #eee; }
             .v-garment-thumb { width:45px; height:45px; border-radius:8px; object-fit:cover; background:#fff; border:1px solid #ddd; }
             .v-badge { position: absolute; top: 15px; left: 15px; background: rgba(255,255,255,0.95); color: #000; font-size: 10px; font-weight: 800; padding: 6px 12px; border-radius: 30px; box-shadow: 0 4px 10px rgba(0,0,0,0.2); z-index: 10; }
-            .v-btn-blk { background:#000; color:#fff; border:none; padding:18px; border-radius:12px; font-weight:800; cursor:pointer; font-size:13px; width:100%; transition: 0.3s; letter-spacing: 1px; box-shadow: 0 10px 20px rgba(0,0,0,0.1); }
+            
+            /* DYNAMIC BUTTON COLOR */
+            .v-btn-blk { background:${BRAND_COLOR}; color:#fff; border:none; padding:18px; border-radius:12px; font-weight:800; cursor:pointer; font-size:13px; width:100%; transition: 0.3s; letter-spacing: 1px; box-shadow: 0 10px 20px rgba(0,0,0,0.1); }
             .v-btn-blk:hover { transform: translateY(-2px); box-shadow: 0 15px 30px rgba(0,0,0,0.2); }
             .v-btn-blk:disabled { opacity:0.6; cursor:not-allowed; transform:none; }
-            
-            #vton-float { position:fixed; bottom:25px; right:25px; z-index:2147483646; background:#000; color:#fff; border:none; padding:15px 28px; border-radius:100px; font-weight:700; cursor:pointer; box-shadow:0 15px 35px rgba(0,0,0,0.3); font-size:14px; transition: all 0.3s ease; display:flex; align-items:center; white-space: nowrap; }
+            #vton-float { position:fixed; bottom:25px; right:25px; z-index:2147483646; background:${BRAND_COLOR}; color:#fff; border:none; padding:15px 28px; border-radius:100px; font-weight:700; cursor:pointer; box-shadow:0 15px 35px rgba(0,0,0,0.3); font-size:14px; transition: all 0.3s ease; display:flex; align-items:center; white-space: nowrap; }
             #vton-float.confirm-mode { background: #2563eb; transform: scale(1.05); }
             #vton-float.processing { padding-right: 50px; background: #222; cursor: wait; min-width: 220px; }
         `;
@@ -62,50 +66,51 @@
         return h1 ? h1.innerText : "this item";
     };
 
+    // NEW LOGIC: Detects Garment Category based on Product Name
+    const getGarmentCategory = (title) => {
+        const t = title.toLowerCase();
+        if (t.includes('dress') || t.includes('gown') || t.includes('jumpsuit') || t.includes('saree') || t.includes('kurta') || t.includes('suit') || t.includes('romper') || t.includes('set')) return "one-pieces";
+        if (t.includes('pant') || t.includes('jean') || t.includes('trouser') || t.includes('skirt') || t.includes('short') || t.includes('legging') || t.includes('cargo')) return "bottoms";
+        return "tops"; // Default
+    };
+
     // ************************************************************
-    //  2. THE "STRICT VERTICAL" SCANNER (Your Logic)
+    //  2. THE "STRICT VERTICAL" SCANNER
     // ************************************************************
     const getGarmentImage = () => {
-        // 1. Scan EVERY image on the current page
         let candidates = [];
         
         document.querySelectorAll('img').forEach(img => {
             const rect = img.getBoundingClientRect();
             const src = (img.src || "").toLowerCase();
             
-            // Filter 1: It must be visible and decent size
+            // Filter 1: Visible and decent size
             if (rect.width > 150 && rect.height > 150) {
                 
-                // Filter 2: THE GOLDEN RULE
-                // Height MUST be bigger than Width (Portrait Mode)
-                // This deletes Banners (Wide) and Website Screenshots (Wide)
-                if (rect.height > rect.width) { 
-                    
-                    // Filter 3: No Logos or Icons
+                // Filter 2: UPDATED MOBILE FIX
+                // Checks normal screen height OR the natural raw file height (for squished mobile images)
+                const isPortrait = (rect.height > rect.width) || (img.naturalHeight > img.naturalWidth);
+                
+                if (isPortrait) { 
                     if (!src.includes('logo') && !src.includes('icon') && !src.includes('avatar')) {
-                        // Save it!
-                        candidates.push({ src: img.src, height: rect.height });
+                        // Store the natural height to ensure we pick the highest quality original file
+                        candidates.push({ src: img.src, height: img.naturalHeight || rect.height });
                     }
                 }
             }
         });
 
-        // 2. Pick the TALLEST one (Likely the main product)
         if (candidates.length > 0) {
             candidates.sort((a, b) => b.height - a.height); 
             return candidates[0].src;
         }
 
-        // 3. If nothing found, use safe fallback
         return FALLBACK_IMG;
     };
 
     // 3. VISIBILITY (URL Check)
     const checkPage = () => {
-        // FIX: Use 'pathname' instead of 'href' so the domain name doesn't trigger the button!
         const path = window.location.pathname.toLowerCase();
-        
-        // Show only exactly when these words are in the URL path
         const isProductUrl = path.includes('product') || path.includes('item') || path.includes('category');
         
         if (isProductUrl || (window.VTON_CONFIG && window.VTON_CONFIG.force)) {
@@ -125,12 +130,10 @@
 
         b.onclick = () => {
             if (b.dataset.state === "idle") {
-                // FIRST CLICK: Just change text
                 b.innerHTML = "🧐 TRY THIS ITEM?";
                 b.classList.add("confirm-mode");
                 b.dataset.state = "confirm";
             } else {
-                // SECOND CLICK: RUN SCANNER NOW
                 b.innerHTML = "✨ SEE IT ON YOU";
                 b.classList.remove("confirm-mode");
                 b.dataset.state = "idle";
@@ -147,7 +150,6 @@
 
     // 4. UI FLOW
     function showGuide() {
-        // EXECUTE SCANNER HERE (User Requested Moment)
         const detectedGarment = getGarmentImage();
         let trials = localStorage.getItem("vton_trials") || 5;
 
@@ -198,7 +200,7 @@
         };
     }
 
-    // 5. ENGINE (FREE TEST MODE)
+    // 5. ENGINE
     async function startPipeline(userFile, garmentUrl) {
         const btn = document.getElementById("vton-float");
         let interval = null;
@@ -211,10 +213,13 @@
 
             const userBase64 = await toBase64(userFile);
             
+            // Auto-detect the category to send to Cloudflare!
+            const category = getGarmentCategory(getProductName());
+            
             const startReq = await fetch(`${WORKER_URL}/start?client=${CLIENT_ID}`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ userImage: userBase64, garmentImage: garmentUrl })
+                body: JSON.stringify({ userImage: userBase64, garmentImage: garmentUrl, category: category })
             });
 
             const startData = await startReq.json();
