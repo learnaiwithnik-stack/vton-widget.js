@@ -66,16 +66,15 @@
         return h1 ? h1.innerText : "this item";
     };
 
-    // NEW LOGIC: Detects Garment Category based on Product Name
     const getGarmentCategory = (title) => {
         const t = title.toLowerCase();
         if (t.includes('dress') || t.includes('gown') || t.includes('jumpsuit') || t.includes('saree') || t.includes('kurta') || t.includes('suit') || t.includes('romper') || t.includes('set')) return "one-pieces";
         if (t.includes('pant') || t.includes('jean') || t.includes('trouser') || t.includes('skirt') || t.includes('short') || t.includes('legging') || t.includes('cargo')) return "bottoms";
-        return "tops"; // Default
+        return "tops"; 
     };
 
     // ************************************************************
-    //  2. THE "STRICT VERTICAL" SCANNER
+    //  2. THE NEW DUAL-SCANNER (Desktop = Tallest, Mobile = Top First)
     // ************************************************************
     const getGarmentImage = () => {
         let candidates = [];
@@ -86,22 +85,33 @@
             
             // Filter 1: Visible and decent size
             if (rect.width > 150 && rect.height > 150) {
-                
-                // Filter 2: UPDATED MOBILE FIX
-                // Checks normal screen height OR the natural raw file height (for squished mobile images)
                 const isPortrait = (rect.height > rect.width) || (img.naturalHeight > img.naturalWidth);
                 
                 if (isPortrait) { 
                     if (!src.includes('logo') && !src.includes('icon') && !src.includes('avatar')) {
-                        // Store the natural height to ensure we pick the highest quality original file
-                        candidates.push({ src: img.src, height: img.naturalHeight || rect.height });
+                        // Store height AND top position (distance from top of page)
+                        const topPosition = rect.top + window.scrollY;
+                        candidates.push({ 
+                            src: img.src, 
+                            height: img.naturalHeight || rect.height, 
+                            topPosition: topPosition 
+                        });
                     }
                 }
             }
         });
 
         if (candidates.length > 0) {
-            candidates.sort((a, b) => b.height - a.height); 
+            const isMobile = window.innerWidth <= 768;
+            
+            if (isMobile) {
+                // MOBILE LOGIC: Sort by distance from top (lowest number = closest to top)
+                candidates.sort((a, b) => a.topPosition - b.topPosition);
+            } else {
+                // DESKTOP LOGIC: Sort by height (tallest image)
+                candidates.sort((a, b) => b.height - a.height);
+            }
+            
             return candidates[0].src;
         }
 
@@ -212,8 +222,6 @@
             btn.disabled = true;
 
             const userBase64 = await toBase64(userFile);
-            
-            // Auto-detect the category to send to Cloudflare!
             const category = getGarmentCategory(getProductName());
             
             const startReq = await fetch(`${WORKER_URL}/start?client=${CLIENT_ID}`, {
